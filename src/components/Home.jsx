@@ -68,13 +68,13 @@ const Home = () => {
             <p className="text-gray-700 italic mb-2">
               “Since using AI Marketing Tools, our campaign efficiency has increased by 40%.”
             </p>
-            <span className="font-bold text-gray-900">– Jane, Marketing Manager</span>
+            <span className="font-bold text-gray-900">–Marketing Manager</span>
           </div>
           <div>
             <p className="text-gray-700 italic mb-2">
               “We’ve automated over 75% of our manual marketing work. Game changer!”
             </p>
-            <span className="font-bold text-gray-900">– Rahul, Growth Hacker</span>
+            <span className="font-bold text-gray-900">–Growth Hacker</span>
           </div>
         </div>
       </section>
