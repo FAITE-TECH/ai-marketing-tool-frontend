@@ -10,55 +10,62 @@ const Login = () => {
   const [success, setSuccess] = useState(false);
 
   const handleLogin = async (e) => {
-    e.preventDefault();
+  e.preventDefault();
+  setLoading(true);
 
-    setLoading(true);
+  try {
+    const formData = new URLSearchParams();
+    formData.append('username', email);
+    formData.append('password', password);
 
-    try {
-      const formData = new URLSearchParams();
-      formData.append('username', email);
-      formData.append('password', password);
+    const response = await fetch('http://localhost:8000/api/v1/auth/login', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+      },
+      body: formData,
+    });
 
-      const response = await fetch('http://localhost:8000/api/v1/auth/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-        },
-        body: formData,
-      });
+    const data = await response.json();
+    console.log('Login Response:', data);
 
-      const data = await response.json();
-      console.log('Login Response:', data);
+    if (response.ok && data.access_token) {
+      localStorage.setItem('access_token', data.access_token);
 
-      if (response.ok) {
-        if (data.access_token) {
-          // ✅ Save token to localStorage
-          localStorage.setItem('access_token', data.access_token);
-        }
-
-        setSuccess(true); // ✅ Show success popup
-
-        // ✅ Redirect to profile page after 2 seconds
-        setTimeout(() => navigate('/'), 2000);
-      } else {
-        alert(data.detail || 'Login failed');
+      try {
+        const payload = JSON.parse(atob(data.access_token.split('.')[1]));
+        console.log('[User Info]', payload);
+      } catch (err) {
+        console.warn('Failed to decode token payload:', err);
       }
-    } catch (error) {
-      console.error('Login error:', error);
-      alert('Something went wrong. Please try again later.');
-    } finally {
-      setLoading(false);
+
+      setSuccess(true);
+      setEmail('');
+      setPassword('');
+
+      // ✅ Wait 1.5 seconds before navigating so the success UI shows
+      setTimeout(() => {
+        navigate('/');
+      }, 1500);
+    } else {
+      alert(data.detail || 'Login failed');
     }
-  };
+  } catch (error) {
+    console.error('Login error:', error);
+    alert('Something went wrong. Please try again later.');
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-gray-100 dark:bg-gray-900 px-4 relative">
-      {/* ✅ Success Popup */}
       {success && (
         <div className="absolute top-5">
           <div className="bg-green-100 border border-green-400 text-green-700 px-6 py-4 rounded-xl shadow-lg animate-fadeIn">
             <strong className="font-bold">Success!</strong>
-            <span className="block sm:inline ml-2">Login successful. Redirecting to profile...</span>
+            <span className="block sm:inline ml-2">Login successful. Redirecting...</span>
           </div>
         </div>
       )}
@@ -101,7 +108,10 @@ const Login = () => {
 
         <p className="mt-4 text-sm text-center text-gray-600 dark:text-gray-400">
           Don't have an account?{' '}
-          <span className="text-blue-600 hover:underline cursor-pointer dark:text-blue-400" onClick={() => navigate('/register')}>
+          <span
+            className="text-blue-600 hover:underline cursor-pointer dark:text-blue-400"
+            onClick={() => navigate('/register')}
+          >
             Register
           </span>
         </p>

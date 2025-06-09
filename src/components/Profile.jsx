@@ -15,7 +15,7 @@ const Profile = () => {
       }
 
       try {
-        const response = await fetch('http://localhost:8000/api/v1/users/me', {
+        const response = await fetch('http://localhost:8000/api/v1/auth/me', {
           headers: {
             Authorization: `Bearer ${token}`,
           },
@@ -41,7 +41,7 @@ const Profile = () => {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-800 text-white">
+      <div className="flex items-center justify-center min-h-screen bg-white text-gray-800">
         Loading profile...
       </div>
     );
@@ -49,15 +49,15 @@ const Profile = () => {
 
   if (!user) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-800 text-white">
+      <div className="flex items-center justify-center min-h-screen bg-white text-gray-800">
         No user data found.
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-800 text-white flex items-center justify-center px-4">
-      <div className="bg-gray-900 p-8 rounded-2xl shadow-xl w-full max-w-md">
+    <div className="min-h-screen bg-white text-gray-800 flex items-center justify-center px-4">
+      <div className="bg-gray-100 p-8 rounded-2xl shadow-xl w-full max-w-md">
         <h2 className="text-3xl font-bold text-center mb-6">Your Profile</h2>
 
         <div className="space-y-4">
@@ -73,9 +73,11 @@ const Profile = () => {
           <div>
             <span className="font-semibold">Active:</span> {user.is_active ? 'Yes' : 'No'}
           </div>
+          {/*
           <div>
             <span className="font-semibold">User ID:</span> {user.id}
           </div>
+          */}
         </div>
       </div>
     </div>

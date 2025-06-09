@@ -14,8 +14,8 @@ import ChatbotPage from './components/ChatbotPage'
 import CampaignSchedulerPage from './components/CampaignSchedulerPage'
 import Login from './components/login'
 import Register from './components/Register';
-
-
+import ScheduledCampaigns from './components/ScheduledCampaigns';
+import Logout from './components/Logout';
 
 const App = () => {
   return (
@@ -36,6 +36,8 @@ const App = () => {
               <Route path='/CampaignSchedulerPage' element={<CampaignSchedulerPage />} />
               <Route path='/login' element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/logout" element={<Logout />} />
+              <Route path="/scheduled-campaigns" element={<ScheduledCampaigns />} />
             </Routes>
           </div>
         </div>

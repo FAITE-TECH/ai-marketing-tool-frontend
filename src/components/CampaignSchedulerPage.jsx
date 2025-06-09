@@ -1,227 +1,219 @@
-import React, { useState } from 'react';
-import { LexicalComposer } from '@lexical/react/LexicalComposer';
-import { RichTextPlugin } from '@lexical/react/LexicalRichTextPlugin';
-import { ContentEditable } from '@lexical/react/LexicalContentEditable';
-import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
-import { OnChangePlugin } from '@lexical/react/LexicalOnChangePlugin';
-import { DayPicker } from 'react-day-picker';
-import 'react-day-picker/dist/style.css';
-import TimePicker from 'react-time-picker';
-import 'react-time-picker/dist/TimePicker.css';
-import 'react-clock/dist/Clock.css';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
-const CampaignSchedulerPage = () => {
-  const [campaignName, setCampaignName] = useState('');
-  const [editorContent, setEditorContent] = useState('');
-  const [startDate, setStartDate] = useState(new Date());
-  const [startTime, setStartTime] = useState('09:00');
-  const [endDate, setEndDate] = useState(new Date());
-  const [endTime, setEndTime] = useState('17:00');
-  const [audience, setAudience] = useState('general');
-  const [budget, setBudget] = useState(1000);
-  const [campaigns, setCampaigns] = useState([]);
-  const [editingIndex, setEditingIndex] = useState(null);
+const CampaignEditor = () => {
+  const [name, setName] = useState('');
+  const [description, setDescription] = useState('');
+  const [startDate, setStartDate] = useState('');
+  const [endDate, setEndDate] = useState('');
+  const [targetAudience, setTargetAudience] = useState('');
+  const [budget, setBudget] = useState('');
+  const [status, setStatus] = useState('active');
+  const [error, setError] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
+  const [result, setResult] = useState(null); // ✅ To hold backend response
 
-  const initialConfig = {
-    namespace: 'CampaignEditor',
-    theme: {},
-    onError: (error) => console.error(error),
-  };
+  const navigate = useNavigate();
+  const token = localStorage.getItem('access_token');
 
-  const handleSave = () => {
-    const campaignData = {
-      name: campaignName,
-      content: editorContent,
-      startDate,
-      startTime,
-      endDate,
-      endTime,
-      audience,
-      budget,
-      status: 'scheduled',
+  useEffect(() => {
+    if (!token) {
+      alert('You must be logged in to access this page.');
+      navigate('/login');
+    }
+  }, [navigate, token]);
+
+  const handleSave = async () => {
+    setError('');
+    setIsSaving(true);
+    setResult(null); // Clear previous result
+
+    const payload = {
+      name,
+      description,
+      start_date: new Date(startDate).toISOString(),
+      end_date: new Date(endDate).toISOString(),
+      target_audience: targetAudience,
+      budget: Number(budget),
+      status,
     };
 
-    if (editingIndex !== null) {
-      const updated = [...campaigns];
-      updated[editingIndex] = campaignData;
-      setCampaigns(updated);
-      setEditingIndex(null);
-    } else {
-      setCampaigns([...campaigns, campaignData]);
+    try {
+      const response = await axios.post(
+        'http://localhost:8000/api/v1/social/campaigns',
+        payload,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      alert('Campaign created successfully!');
+      setResult(response.data); // ✅ Store response in state
+
+    } catch (error) {
+      console.error('Error creating campaign:', error.response?.data || error.message);
+      setError('Failed to create campaign. Please try again.');
+      if (axios.isAxiosError(error) && error.response?.status === 401) {
+        navigate('/login');
+      }
+    } finally {
+      setIsSaving(false);
     }
-
-    setCampaignName('');
-    setEditorContent('');
-    setStartDate(new Date());
-    setStartTime('09:00');
-    setEndDate(new Date());
-    setEndTime('17:00');
-    setAudience('general');
-    setBudget(1000);
-  };
-
-  const handleEdit = (index) => {
-    const data = campaigns[index];
-    setCampaignName(data.name);
-    setEditorContent(data.content);
-    setStartDate(data.startDate);
-    setStartTime(data.startTime);
-    setEndDate(data.endDate);
-    setEndTime(data.endTime);
-    setAudience(data.audience);
-    setBudget(data.budget);
-    setEditingIndex(index);
-  };
-
-  const handleDelete = (index) => {
-    const updated = [...campaigns];
-    updated.splice(index, 1);
-    setCampaigns(updated);
   };
 
   return (
-    <div className="p-6 max-w-6xl mx-auto text-gray-800 dark:text-gray-100">
-      <h1 className="text-3xl font-bold mb-4">📅 Campaign Scheduler</h1>
+    <div className="p-8 max-w-3xl mx-auto">
+      <h1 className="text-3xl font-bold mb-6">Create Campaign</h1>
 
-      <div className="grid gap-6 bg-white dark:bg-gray-800 p-6 rounded-2xl shadow-xl">
-        {/* Campaign Name */}
+      <div className="grid grid-cols-1 gap-4 mb-6">
         <div>
-          <label className="block font-semibold mb-1">Campaign Name:</label>
+          <label className="block mb-1 font-semibold">Name</label>
           <input
-            type="text"
-            value={campaignName}
-            onChange={(e) => setCampaignName(e.target.value)}
-            className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="border rounded px-3 py-2 w-full"
+            placeholder="Campaign Name"
           />
         </div>
 
-        {/* Rich Text Editor */}
         <div>
-          <label className="block font-semibold mb-1">Campaign Content:</label>
-          <div className="border rounded-xl bg-white dark:bg-gray-900 p-3 shadow-inner">
-            <LexicalComposer initialConfig={initialConfig}>
-              <RichTextPlugin
-                contentEditable={
-                  <ContentEditable className="min-h-[150px] p-2 outline-none bg-white dark:bg-gray-900" />
-                }
-                placeholder={<div className="text-gray-400">Write campaign content...</div>}
-              />
-              <HistoryPlugin />
-              <OnChangePlugin
-                onChange={(editorState) => {
-                  editorState.read(() => {
-                    const textContent = editorState.toJSON().root.children
-                      .map((node) => node.text || '')
-                      .join('\n');
-                    setEditorContent(textContent);
-                  });
-                }}
-              />
-            </LexicalComposer>
-          </div>
+          <label className="block mb-1 font-semibold">Description</label>
+          <textarea
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="border rounded px-3 py-2 w-full"
+            placeholder="Campaign Description"
+          />
         </div>
 
-        {/* Schedule Pickers */}
-        <div className="grid md:grid-cols-2 gap-4">
-          <div>
-            <label className="block font-semibold mb-1">Start Date & Time:</label>
-            <DayPicker selected={startDate} onSelect={setStartDate} />
-            <TimePicker
-              value={startTime}
-              onChange={setStartTime}
-              className="mt-2 w-full rounded border border-gray-300 dark:border-gray-700"
-            />
-          </div>
-          <div>
-            <label className="block font-semibold mb-1">End Date & Time:</label>
-            <DayPicker selected={endDate} onSelect={setEndDate} />
-            <TimePicker
-              value={endTime}
-              onChange={setEndTime}
-              className="mt-2 w-full rounded border border-gray-300 dark:border-gray-700"
-            />
-          </div>
+        <div>
+          <label className="block mb-1 font-semibold">Start Date</label>
+          <input
+            type="datetime-local"
+            value={startDate}
+            onChange={(e) => setStartDate(e.target.value)}
+            className="border rounded px-3 py-2 w-full"
+          />
         </div>
 
-        {/* Audience Selector */}
         <div>
-          <label className="block font-semibold mb-1">Target Audience:</label>
-          <select
-            value={audience}
-            onChange={(e) => setAudience(e.target.value)}
-            className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900"
-          >
-            <option value="general">General</option>
-            <option value="subscribers">Subscribers</option>
-            <option value="new-customers">New Customers</option>
-            <option value="vip">VIP</option>
-          </select>
+          <label className="block mb-1 font-semibold">End Date</label>
+          <input
+            type="datetime-local"
+            value={endDate}
+            onChange={(e) => setEndDate(e.target.value)}
+            className="border rounded px-3 py-2 w-full"
+          />
         </div>
 
-        {/* Budget */}
         <div>
-          <label className="block font-semibold mb-1">Budget ($):</label>
+          <label className="block mb-1 font-semibold">Target Audience</label>
+          <input
+            value={targetAudience}
+            onChange={(e) => setTargetAudience(e.target.value)}
+            className="border rounded px-3 py-2 w-full"
+            placeholder="e.g., students, professionals"
+          />
+        </div>
+
+        <div>
+          <label className="block mb-1 font-semibold">Budget</label>
           <input
             type="number"
             value={budget}
             onChange={(e) => setBudget(e.target.value)}
-            className="w-full px-4 py-2 rounded-xl border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-900"
+            className="border rounded px-3 py-2 w-full"
+            placeholder="e.g., 5000"
           />
         </div>
 
-        {/* Save Button */}
-        <button
-          onClick={handleSave}
-          className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl shadow transition"
-        >
-          {editingIndex !== null ? 'Update Campaign' : 'Save Campaign'}
-        </button>
+        <div>
+          <label className="block mb-1 font-semibold">Status</label>
+          <select
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="border rounded px-3 py-2 w-full"
+          >
+            <option value="active">Active</option>
+            <option value="paused">Paused</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
       </div>
 
-      {/* Scheduled Campaigns Preview */}
-      <div className="mt-10">
-        <h2 className="text-2xl font-bold mb-4">📋 Scheduled Campaigns</h2>
-        {campaigns.length === 0 ? (
-          <p className="text-gray-500 dark:text-gray-400">No campaigns scheduled.</p>
-        ) : (
-          campaigns.map((campaign, index) => (
-            <div
-              key={index}
-              className="bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl p-4 mb-4 shadow"
-            >
-              <div className="flex justify-between">
-                <div>
-                  <h3 className="font-bold text-lg">{campaign.name}</h3>
-                  <p className="text-sm whitespace-pre-wrap mt-1">{campaign.content}</p>
-                  <p className="text-xs text-gray-500 mt-2">
-                    🕐 {campaign.startDate.toDateString()} {campaign.startTime} —{' '}
-                    {campaign.endDate.toDateString()} {campaign.endTime}
-                  </p>
-                  <p className="text-xs text-gray-500">🎯 Audience: {campaign.audience}</p>
-                  <p className="text-xs text-gray-500">💰 Budget: ${campaign.budget}</p>
-                  <p className="text-xs text-green-600">Status: {campaign.status}</p>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <button
-                    onClick={() => handleEdit(index)}
-                    className="text-blue-600 border border-blue-600 px-3 py-1 rounded text-sm hover:bg-blue-100 dark:hover:bg-blue-900"
-                  >
-                    Edit
-                  </button>
-                  <button
-                    onClick={() => handleDelete(index)}
-                    className="text-red-600 border border-red-600 px-3 py-1 rounded text-sm hover:bg-red-100 dark:hover:bg-red-900"
-                  >
-                    Delete
-                  </button>
-                </div>
-              </div>
-            </div>
-          ))
+      <button
+        onClick={handleSave}
+        disabled={isSaving}
+        className={`text-white px-4 py-2 rounded ${
+          isSaving ? 'bg-blue-400 cursor-not-allowed' : 'bg-blue-600 hover:bg-blue-700'
+        }`}
+      >
+        {isSaving ? 'Saving...' : 'Save Campaign'}
+      </button>
+
+      {error && <p className="text-red-600 mt-4">{error}</p>}
+
+      {result && (
+  <div className="mt-6 p-4 border rounded bg-green-100 text-green-800">
+    <h2 className="text-lg font-semibold mb-4 text-green-900">🎉 Campaign Created Successfully!</h2>
+    <table className="table-auto w-full text-left text-sm bg-white border rounded shadow-sm">
+      <tbody>
+        <tr>
+          <th className="px-4 py-2 border-b font-medium">ID</th>
+          <td className="px-4 py-2 border-b">{result.id}</td>
+        </tr>
+        <tr>
+          <th className="px-4 py-2 border-b font-medium">Name</th>
+          <td className="px-4 py-2 border-b">{result.name}</td>
+        </tr>
+        <tr>
+          <th className="px-4 py-2 border-b font-medium">Description</th>
+          <td className="px-4 py-2 border-b">{result.description}</td>
+        </tr>
+        <tr>
+          <th className="px-4 py-2 border-b font-medium">Start Date</th>
+          <td className="px-4 py-2 border-b">{new Date(result.start_date).toLocaleString()}</td>
+        </tr>
+        <tr>
+          <th className="px-4 py-2 border-b font-medium">End Date</th>
+          <td className="px-4 py-2 border-b">{new Date(result.end_date).toLocaleString()}</td>
+        </tr>
+        <tr>
+          <th className="px-4 py-2 border-b font-medium">Target Audience</th>
+          <td className="px-4 py-2 border-b">{result.target_audience}</td>
+        </tr>
+        <tr>
+          <th className="px-4 py-2 border-b font-medium">Budget</th>
+          <td className="px-4 py-2 border-b">${result.budget}</td>
+        </tr>
+        <tr>
+          <th className="px-4 py-2 border-b font-medium">Status</th>
+          <td className="px-4 py-2 border-b capitalize">{result.status}</td>
+        </tr>
+        <tr>
+          <th className="px-4 py-2 border-b font-medium">Created At</th>
+          <td className="px-4 py-2 border-b">{new Date(result.created_at).toLocaleString()}</td>
+        </tr>
+        {result.updated_at && (
+          <tr>
+            <th className="px-4 py-2 border-b font-medium">Updated At</th>
+            <td className="px-4 py-2 border-b">{new Date(result.updated_at).toLocaleString()}</td>
+          </tr>
         )}
-      </div>
+        {/* <tr>
+          <th className="px-4 py-2 border-b font-medium">Created By</th>
+          <td className="px-4 py-2 border-b">{result.created_by_id}</td>
+        </tr> */}
+      </tbody>
+    </table>
+  </div>
+)}
+
     </div>
   );
 };
 
-export default CampaignSchedulerPage;
+export default CampaignEditor;
